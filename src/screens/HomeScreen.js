@@ -1,78 +1,132 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
-const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:4000";
+const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:4001";
+const demoProperties = [
+  {
+    id: "demo-1",
+    title: "Modern Family House",
+    location: "DHA Lahore",
+    price_per_day: 120,
+    beds: 4,
+    baths: 3,
+    rating: 4.8,
+  },
+  {
+    id: "demo-2",
+    title: "City View Apartment",
+    location: "Gulberg Lahore",
+    price_per_day: 85,
+    beds: 2,
+    baths: 2,
+    rating: 4.6,
+  },
+  {
+    id: "demo-3",
+    title: "Luxury Villa with Garden",
+    location: "Bahria Town",
+    price_per_day: 210,
+    beds: 5,
+    baths: 4,
+    rating: 4.9,
+  },
+  {
+    id: "demo-4",
+    title: "Budget Studio",
+    location: "Johar Town",
+    price_per_day: 45,
+    beds: 1,
+    baths: 1,
+    rating: 4.2,
+  },
+];
+
+const loadProperties = async () => {
+  const response = await fetch(`${backendUrl}/api/properties`);
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return response.json();
+};
 
 export default function HomeScreen() {
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data = [], isPending, isError, error } = useQuery({
+    queryKey: ["properties"],
+    queryFn: loadProperties,
+  });
+  const showDemoData = isError || data.length === 0;
+  const propertiesToRender = showDemoData ? demoProperties : data;
 
-  useEffect(() => {
-    loadProperties();
-  }, []);
-
-  const loadProperties = async () => {
-    try {
-      const response = await fetch(`${backendUrl}/api/properties`);
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-      const data = await response.json();
-      setProperties(data);
-    } catch (err) {
-      setError(err.message || "Failed to load properties");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <ActivityIndicator size="large" color="#333" />;
-  }
-
-  if (error) {
-    return <Text style={styles.error}>Error: {error}</Text>;
-  }
-
-  if (properties.length === 0) {
-    return <Text style={styles.muted}>No properties found.</Text>;
+  if (isPending) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#111827" />
+      </View>
+    );
   }
 
   return (
-    <FlatList
-      data={properties}
-      keyExtractor={(item) => String(item.id)}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardMeta}>{item.location}</Text>
-          <Text style={styles.cardMeta}>${item.price_per_day}/day</Text>
+    <View style={{ flex: 1, backgroundColor: "#f3f4f6", paddingHorizontal: 14, paddingTop: 10 }}>
+      <Text style={{ fontSize: 26, fontWeight: "800", color: "#111827", marginBottom: 4 }}>
+        Rental Homes
+      </Text>
+      <Text style={{ color: "#4b5563", marginBottom: 12 }}>
+        Discover, compare, and book your next stay.
+      </Text>
+
+      {showDemoData ? (
+        <View
+          style={{
+            backgroundColor: "#fffbeb",
+            borderColor: "#f59e0b",
+            borderWidth: 1,
+            borderRadius: 10,
+            padding: 10,
+            marginBottom: 12,
+          }}
+        >
+          <Text style={{ color: "#92400e", fontWeight: "600" }}>
+            Showing demo properties for preview.
+          </Text>
+          {isError ? (
+            <Text style={{ color: "#b91c1c", marginTop: 4 }}>
+              Backend error: {error?.message || "Request failed"}
+            </Text>
+          ) : null}
         </View>
-      )}
-    />
+      ) : null}
+
+      <FlatList
+        data={propertiesToRender}
+        keyExtractor={(item) => String(item.id)}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 12 }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "#e5e7eb",
+              borderRadius: 14,
+              backgroundColor: "#ffffff",
+              padding: 14,
+              marginBottom: 10,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 4 }}>
+              {item.title}
+            </Text>
+            <Text style={{ color: "#374151", marginBottom: 8 }}>{item.location}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ color: "#111827", fontWeight: "700" }}>${item.price_per_day}/day</Text>
+              <Text style={{ color: "#4b5563" }}>
+                {item.beds || "-"} Beds | {item.baths || "-"} Baths
+              </Text>
+            </View>
+            <Text style={{ color: "#4f46e5", marginTop: 6 }}>Rating: {item.rating || "N/A"} / 5</Text>
+          </View>
+        )}
+      />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  cardMeta: {
-    marginTop: 4,
-    color: "#444",
-  },
-  muted: {
-    color: "#666",
-  },
-  error: {
-    color: "crimson",
-  },
-});

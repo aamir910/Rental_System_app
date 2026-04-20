@@ -1,27 +1,28 @@
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, StyleSheet, Text } from "react-native";
+import { useState } from "react";
+import { View } from "react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import HomeScreen from "./src/screens/HomeScreen";
+import LoginScreen from "./src/screens/LoginScreen";
+import SignUpScreen from "./src/screens/SignUpScreen";
+
+const queryClient = new QueryClient();
 
 export default function App() {
+  const [screen, setScreen] = useState("login");
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Rental App</Text>
-      <HomeScreen />
-      <StatusBar style="auto" />
-    </SafeAreaView>
+    <QueryClientProvider client={queryClient}>
+      <View style={{ flex: 1 }}>
+        {screen === "login" ? (
+          <LoginScreen onSuccess={() => setScreen("home")} onGoSignUp={() => setScreen("signup")} />
+        ) : null}
+        {screen === "signup" ? (
+          <SignUpScreen onSuccess={() => setScreen("login")} onGoLogin={() => setScreen("login")} />
+        ) : null}
+        {screen === "home" ? <HomeScreen /> : null}
+        <StatusBar style="auto" />
+      </View>
+    </QueryClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 36,
-    paddingHorizontal: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-});
